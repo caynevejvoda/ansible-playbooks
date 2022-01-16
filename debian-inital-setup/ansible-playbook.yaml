@@ -59,73 +59,56 @@
 
   tasks:
     - name: add alias for exa for user root
-      ansible.builtin.lineinfile:
-        path: /root/.zshrc
-        line: 'alias l="exa --long --header"'
-        insertafter: source ~/.antigenrc
-    - name: add alias for exa for user vagrant
-      ansible.builtin.lineinfile:
-        path: /home/vagrant/.zshrc
-        line: 'alias l="exa --long --header"'
-        insertafter: source ~/.antigenrc
+      blockinfile:
+        path: "{{ item.path }}"
+        block: |
+          alias l="exa --long --header"
+          alias ls="exa --long --header"
+          alias la="exa --long --header --all"
+      loop:
+        - { path: '/root/.zshrc' }
+        - { path: '/home/vagrant/.zshrc' }
 
-    - name: create .vim directory for vim plug for user root
-      ansible.builtin.file:
-        path: /root/.vim
+    - name: ansible create directory's for vim
+      file:
+        path: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        recurse: yes   
         state: directory
-        owner: root
-        group: root
-        mode: 0750
-        recurse: yes
-    - name: create autoload directory for vim plug for user root
-      ansible.builtin.file:
-        path: /root/.vim/autoload
-        state: directory
-        owner: root
-        group: root
-        mode: 0755
-        recurse: yes
-    - name: create .vim directory for vim plug for user vagrant
-      ansible.builtin.file:
-        path: /home/vagrant/.vim
-        state: directory
-        owner: vagrant
-        group: vagrant
-        mode: 0750
-        recurse: yes
-    - name: create autoload directory for vim plug for user vagrant
-      ansible.builtin.file:
-        path: /home/vagrant/.vim/autoload
-        state: directory
-        owner: vagrant
-        group: vagrant
-        mode: 0755
-        recurse: yes
-    - name: download vim plug an place it in the right directory for user root
+      loop:
+        - { dest: '/root/.vim', mode: '0750', owner: 'root', group: 'root' }
+        - { dest: '/root/.vim/autoload', mode: '0755', owner: 'root', group: 'root' }
+        - { dest: '/home/vagrant/.vim', mode: '0750', owner: 'vagrant', group: 'vagrant' }
+        - { dest: '/home/vagrant/.vim/autoload', mode: '0755', owner: 'vagrant', group: 'vagrant' }
+
+    - name: download vim plug an place it in the right directory
       get_url:
         url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        dest: /root/.vim/autoload/
-        owner: root
-        group: root
+        dest: "{{ item.dest }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
         mode: 0664
-    - name: download vim plug an place it in the right directory for user vagrant
-      get_url:
-        url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-        dest: /home/vagrant/.vim/autoload/
-        owner: vagrant
-        group: vagrant
-        mode: 0664
-    - name: copy vim config for user root
+      loop:
+        - { dest: '/root/.vim/autoload/', owner: 'root', group: 'root' }
+        - { dest: '/home/vagrant/.vim/autoload/', owner: 'vagrant', group: 'vagrant' }
+
+    - name: copy vim config in the right directory
       copy:
         src: vimrc
-        dest: /root/.vimrc
-        owner: root
-        group: root
+        dest: "{{ item.dest }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
         mode: 0640
-    - name: copy vim config for user vagrant
-      copy:
-        src: vimrc
-        dest: /home/vagrant/.vimrc
-        owner: vagrant
-        group: vagrant
-        mode: 0640
+      loop:
+        - { dest: '/root/.vimrc', owner: 'root', group: 'root' }
+        - { dest: '/home/vagrant/.vimrc', owner: 'vagrant', group: 'vagrant' }
+
+    - name: install vim plugins
+      command: vim +'PlugInstall --sync' +qall &> /dev/null
+      become: yes
+      become_user: "{{ item.user }}"
+      loop:
+        - { user: 'root' }
+        - { user: 'vagrant' }
