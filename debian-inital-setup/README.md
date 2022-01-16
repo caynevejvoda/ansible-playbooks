@@ -66,7 +66,7 @@ Vagrant.configure("2") do |config|
 
   # tells Vagrant to execute the ansible Playbook by first Vagrant up oder vagrant provision 
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "zsh_playbook.yml"
+    ansible.playbook = "ansible_playbook.yml"
   end
 
 end
